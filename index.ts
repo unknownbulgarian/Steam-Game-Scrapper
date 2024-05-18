@@ -6,6 +6,16 @@ const url = 'https://store.steampowered.com/app/227300/Euro_Truck_Simulator_2/'
     return new Promise(resolve => setTimeout(resolve, ms));
 }*/
 
+interface DLC {
+    name: string;
+    price: (string | null)[];
+}
+
+interface Requirements {
+    Req: string | undefined;
+}
+
+
 const runMain = async () => {
     const browser = await puppeteer.launch({
         headless: false,
@@ -50,8 +60,6 @@ const runMain = async () => {
         } else {
             return null;
         }
-
-
     })
 
     const gameReviews = await page.$eval('#game_area_reviews', el => {
@@ -89,18 +97,53 @@ const runMain = async () => {
 
 
 
+    const finalGame = {
+        General: {
+            Link: newUrl,
+            Title: title,
+            GamePrice: gamePrice,
+        },
+        About: {
+            Description: description?.desc,
+            Wikipedia: description?.wikiLink,
+        },
+        Extra: {
+            DLCS: [] as DLC[],
+        },
+        Requirements: {
+            Minimum: [] as Requirements[],
+            Maximum: [] as Requirements[],
+        },
+        Reviews: gameReviews,
+    };
+
+    if (gameDLCS && gameDLCS.dls && gameDLCS.dlsPrices) {
+        for (let i = 0; i < gameDLCS.dls.length; i++) {
+            const dlcName = gameDLCS.dls[i];
+            const dlcPrices = gameDLCS.dlsPrices[i] || [];
+            // Extract the first price as DLC price
+            const dlcPrice = dlcPrices[0] || null;
+            finalGame.Extra.DLCS.push({ name: dlcName, price: dlcPrice });
+        }
+    }
+
+    for (let i = 0; i < minRequirements.length; i++) {
+        const req = minRequirements[i]
+
+        finalGame.Requirements.Minimum.push({ Req: req })
+    }
+
+    for (let i = 0; i < recommendedRequirements.length; i++) {
+        const req = recommendedRequirements[i]
+
+        finalGame.Requirements.Maximum.push({ Req: req })
+    }
 
 
-    console.log('Link ' + newUrl)
-    console.log('The Title: ' + title)
-    console.log(minRequirements)
-    console.log(recommendedRequirements)
-    console.log('Description ' + description?.desc)
-    console.log('Wikipedia ' + description?.wikiLink)
-    console.log('Price ', gamePrice)
-    console.log('DLCS ' + gameDLCS?.dls)
-    console.log('DLCS Prices ' + gameDLCS?.dlsPrices)
-    console.log('Reviews ' + gameReviews)
+
+
+    console.log(finalGame);
+
 
 
     browser.close()
