@@ -7,6 +7,7 @@ const uri = process.env.URI
 const dbName = 'Games';
 const collectionName = 'sources';
 
+//put the url of the targetted game
 const url = 'https://store.steampowered.com/app/1604030/V_Rising/'
 
 function timeout(ms) {
@@ -46,6 +47,10 @@ const runMain = async () => {
         return links;
     })
 
+    const keywords = await page.$eval('.popular_tags', el => {
+        const words = Array.from(el.querySelectorAll('a')).map(el => el.textContent)
+        return words;
+    })
 
     const minRequirements = await page.$eval('.game_area_sys_req_leftCol', el => {
         const items = el.querySelector('.bb_ul')?.querySelectorAll('li');
@@ -117,6 +122,7 @@ const runMain = async () => {
             Title: title,
             imgSrc: imgSrc,
             GamePrice: gamePrice,
+            Keywords: []
         },
         About: {
             Description: description?.desc,
@@ -161,6 +167,11 @@ const runMain = async () => {
     for (let i = 0; i < extraVideos.length; i++) {
         const video = extraVideos[i]
         game.Extra.Videos.push({ video })
+    }
+
+    for (let i = 0; i < keywords.length; i++) {
+        const keyword = keywords[i]
+        game.General.Keywords.push({ keyword })
     }
 
 
