@@ -6,13 +6,34 @@ const uri = process.env.URI; // Ensure .env file has the MongoDB URI
 const dbName = 'Games'; // Your database name
 const collectionName = 'sources'; // Your collection name
 
-const startPoint = 0;
-const endPoint = 30;
+const startPoint = 55;
+const endPoint = 1020;
 
 // Function to add delay between actions
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+//to get more items
+const autoScroll = async (page) => {
+    await page.evaluate(async () => {
+        await new Promise((resolve, reject) => {
+            let totalHeight = 2000;
+            const distance = 8500;
+            const timer = setInterval(() => {
+                const scrollHeight = document.body.scrollHeight;
+                window.scrollBy(0, distance);
+                totalHeight += distance;
+
+                if (totalHeight >= scrollHeight) {
+                    clearInterval(timer);
+                    resolve();
+                }
+            }, 100);
+        });
+    });
+};
+
 
 // Function to get game links
 const getGamesLinks = async () => {
@@ -24,8 +45,13 @@ const getGamesLinks = async () => {
     const page = await browser.newPage();
     await page.goto('https://store.steampowered.com/search/Steam?sort_by=_ASC&supportedlang=english');
 
+    
+    await timeout(15000)
+
     await page.waitForSelector('.search_result_row');
     const elements = await page.$$('.search_result_row');
+
+
 
     const gamePages = [];
     for (let i = startPoint; i < Math.min(endPoint, elements.length); i++) {
@@ -56,7 +82,7 @@ const runMain = async (url) => {
         //  console.log('Button not found');
     }
 
-    await timeout(5000)
+    await timeout(2000)
 
 
     const newUrl = page.url();
