@@ -1,18 +1,17 @@
-import * as puppeteer from 'puppeteer';
+const puppeteer = require('puppeteer');
+const { MongoClient } = require('mongodb');
 
-const url = 'https://store.steampowered.com/app/227300/Euro_Truck_Simulator_2/'
+require('dotenv').config();
 
-/*function timeout(ms: any) {
+const uri = process.env.URI
+const dbName = 'Games';
+const collectionName = 'sources';
+
+const url = 'https://store.steampowered.com/app/1604030/V_Rising/'
+
+function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
-}*/
 
-interface DLC {
-    name: string;
-    price: (string | null)[];
-}
-
-interface Requirements {
-    Req: string | undefined;
 }
 
 
@@ -25,9 +24,27 @@ const runMain = async () => {
     const page = await browser.newPage()
     await page.goto(url)
 
+
+
+
     const newUrl = page.url()
 
     const title = await page.$eval('.apphub_AppName', el => el.innerHTML)
+
+    const imgSrc = await page.$eval('.game_header_image_full', el => el.getAttribute('src'))
+
+
+    const extraImages = await page.evaluate(() => {
+        const imageDiv = document.querySelectorAll('.screenshot_holder')
+        const links = Array.from(imageDiv).map(el => el.querySelector('a').getAttribute('href'))
+        return links;
+    })
+
+    const extraVideos = await page.evaluate(() => {
+        const videos = document.querySelectorAll('.highlight_player_item')
+        const links = Array.from(videos).map(el => el.getAttribute('src'))
+        return links;
+    })
 
 
     const minRequirements = await page.$eval('.game_area_sys_req_leftCol', el => {
@@ -46,25 +63,24 @@ const runMain = async () => {
         return Array.from(items, item => item.textContent?.trim());
     })
 
-    const gameDLCS = await page.$eval('.game_area_dlc_list', el => {
-        const dlsNames = Array.from(el.querySelectorAll('.game_area_dlc_name')).map(el => el.innerHTML?.trim())
+    const gameDLCS = await page.evaluate(() => {
+        try {
+            const el = document.querySelector('.game_area_dlc_list');
+            if (!el) throw new Error('Element not found');
 
-        const prices = Array.from(el.querySelectorAll('.game_area_dlc_price')).map(el =>
-            Array.from(el.querySelectorAll('.discount_prices')).map(el => Array.from(el.querySelectorAll('.discount_final_price')).map(el => el.textContent)))
+            const dlsNames = Array.from(el.querySelectorAll('.game_area_dlc_name')).map(el => el.innerHTML?.trim());
+            const prices = Array.from(el.querySelectorAll('.game_area_dlc_price')).map(el =>
+                Array.from(el.querySelectorAll('.discount_prices')).map(el => Array.from(el.querySelectorAll('.discount_final_price')).map(el => el.textContent)));
 
-        if (dlsNames && prices) {
             return {
                 dls: dlsNames,
                 dlsPrices: prices
-            }
-        } else {
+            };
+        } catch (error) {
+            console.error('Error occurred while fetching game DLCs:', error);
             return null;
         }
-    })
-
-    const gameReviews = await page.$eval('#game_area_reviews', el => {
-        return el.outerHTML;
-    })
+    });
 
     const gamePrice = await page.$eval('.discount_original_price', el => {
         return el.textContent
@@ -95,12 +111,11 @@ const runMain = async () => {
         }
     });
 
-
-
-    const finalGame = {
+    const game = {
         General: {
             Link: newUrl,
             Title: title,
+            imgSrc: imgSrc,
             GamePrice: gamePrice,
         },
         About: {
@@ -108,45 +123,68 @@ const runMain = async () => {
             Wikipedia: description?.wikiLink,
         },
         Extra: {
-            DLCS: [] as DLC[],
+            DLCS: [],
+            Images: [],
+            Videos: [],
         },
         Requirements: {
-            Minimum: [] as Requirements[],
-            Maximum: [] as Requirements[],
+            Minimum: [],
+            Maximum: [],
         },
-        Reviews: gameReviews,
     };
 
     if (gameDLCS && gameDLCS.dls && gameDLCS.dlsPrices) {
         for (let i = 0; i < gameDLCS.dls.length; i++) {
             const dlcName = gameDLCS.dls[i];
             const dlcPrices = gameDLCS.dlsPrices[i] || [];
-            // Extract the first price as DLC price
+
             const dlcPrice = dlcPrices[0] || null;
-            finalGame.Extra.DLCS.push({ name: dlcName, price: dlcPrice });
+            game.Extra.DLCS.push({ name: dlcName, price: dlcPrice });
         }
     }
 
     for (let i = 0; i < minRequirements.length; i++) {
         const req = minRequirements[i]
-
-        finalGame.Requirements.Minimum.push({ Req: req })
+        game.Requirements.Minimum.push({ Req: req })
     }
 
     for (let i = 0; i < recommendedRequirements.length; i++) {
         const req = recommendedRequirements[i]
+        game.Requirements.Maximum.push({ Req: req })
+    }
 
-        finalGame.Requirements.Maximum.push({ Req: req })
+    for (let i = 0; i < extraImages.length; i++) {
+        const image = extraImages[i]
+        game.Extra.Images.push({ image })
+    }
+
+    for (let i = 0; i < extraVideos.length; i++) {
+        const video = extraVideos[i]
+        game.Extra.Videos.push({ video })
     }
 
 
 
+    const client = new MongoClient(uri);
+    await client.connect();
 
-    console.log(finalGame);
+    try {
+        const db = client.db(dbName);
+        const collection = db.collection(collectionName);
 
 
+        await collection.updateOne(
+            { _id: '664892cd5c515863eae2e6c9' },
+            { $push: { games: game } },
+            { upsert: true }
+        );
 
-    browser.close()
+        console.log('Game data inserted successfully into the "games" array in the MongoDB document.');
+    } finally {
+        await client.close();
+        browser.close();
+    }
+
 }
 
 runMain()

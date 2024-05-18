@@ -7,6 +7,7 @@
         "preserveConstEnums": true,
         "declaration": true,
         "target": "es5",
+        "strict": false,
         "lib": [
             "es2015",
             "dom"
