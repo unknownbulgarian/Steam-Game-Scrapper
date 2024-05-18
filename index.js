@@ -128,15 +128,15 @@ const runMain = async () => {
             const prices = Array.from(el.querySelectorAll('.game_area_dlc_price')).map(el =>
                 Array.from(el.querySelectorAll('.discount_prices')).map(el => Array.from(el.querySelectorAll('.discount_final_price')).map(el => el.textContent)));
 
-            let realPrices = null;
+       
 
-            if (!prices) {
-                realPrices = Array.from(document.querySelectorAll('.game_area_dlc_price')).map(el => el.textContent.trim())
-            }
+            const priceDiv = document.querySelector('.game_area_dlc_list')
+            const realPrices = Array.from(priceDiv.querySelectorAll('.game_area_dlc_price')).map(el => el.textContent.trim())
+     
 
             return {
                 dls: dlsNames,
-                discount: prices ? true : false,
+                discount: originalDiscountPrices[0].length > 0 ? true : false,
                 originalDiscountPrices,
                 discountPrice: prices,
                 dlcRealPrice: realPrices,
@@ -150,7 +150,8 @@ const runMain = async () => {
     //getting the game price
     const gamePrice = await page.evaluate(() => {
         try {
-            const price = document.querySelector('.game_purchase_price')
+            const priceDiv = document.querySelector('.game_area_purchase_game')
+            const price = priceDiv.querySelector('.game_purchase_price')
             if (!price) {
                 return null;
             } else {
@@ -162,9 +163,25 @@ const runMain = async () => {
         }
     })
 
-    const FinalPrice = await page.evaluate(() => {
+    const originalDiscountPrice = await page.evaluate(() => {
         try {
-            const price = document.querySelector('.discount_final_price')
+            const priceDiv = document.querySelector('.game_area_purchase_game_wrapper')
+            const price = priceDiv.querySelector('.discount_original_price')
+            if(!price) {
+                return null;
+            } else {
+                return price.textContent.trim()
+            }
+
+        } catch (error) {
+           return null
+        }
+    })
+
+    const finalPrice = await page.evaluate(() => {
+        try {
+            const priceDiv = document.querySelector('.game_area_purchase_game_wrapper')
+            const price = priceDiv.querySelector('.discount_final_price')
             if (!price) {
                 return null
             } else {
@@ -211,7 +228,8 @@ const runMain = async () => {
             Title: title,
             imgSrc: imgSrc,
             GamePrice: gamePrice,
-            FinalPrice,
+            DiscoundOriginalPrice: originalDiscountPrice,
+            FinalPrice: finalPrice,
             Keywords: []
         },
         About: {
@@ -239,6 +257,8 @@ const runMain = async () => {
             let dlcPrices = null
             let price = null
 
+            let discount = gameDLCS.discount
+
             if (gameDLCS.originalDiscountPrices) {
                 originalDiscountPrices = gameDLCS.originalDiscountPrices[i]
             }
@@ -251,10 +271,8 @@ const runMain = async () => {
                 price = gameDLCS.dlcRealPrice[i]
             }
 
-
-
             const dlcPrice = dlcPrices[0] || null;
-            game.Extra.DLCS.push({ name: dlcName, originalDiscountPrices, discountPrice: dlcPrice, price });
+            game.Extra.DLCS.push({ name: dlcName, discount , originalDiscountPrices, discountPrice: dlcPrice, price});
         }
     }
 
