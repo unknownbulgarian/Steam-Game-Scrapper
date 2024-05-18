@@ -18,7 +18,7 @@ function timeout(ms) {
 const getGamesLinks = async () => {
     const browser = await puppeteer.launch({
         headless: false,
-        executablePath: 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+        userDataDir: 'data'
     });
 
     const page = await browser.newPage();
@@ -41,12 +41,23 @@ const getGamesLinks = async () => {
 const runMain = async (url) => {
     const browser = await puppeteer.launch({
         headless: false,
-        executablePath: 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+        userDataDir: 'data'
     });
     const page = await browser.newPage();
     await page.goto(url);
 
-    await timeout(4000);
+
+    const buttonExists = await page.$('#view_product_page_btn') !== null;
+
+    if (buttonExists) {
+        await page.click('#view_product_page_btn');
+       // console.log('Button clicked');
+    } else {
+      //  console.log('Button not found');
+    }
+
+    await timeout(5000)
+
 
     const newUrl = page.url();
     const title = await page.$eval('.apphub_AppName', el => el.innerHTML);
