@@ -8,8 +8,9 @@ const dbName = 'Games';
 const collectionName = 'sources';
 
 //put the url of the targetted game
-const url = 'https://store.steampowered.com/app/1604030/V_Rising/'
+const url = 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/'
 
+//you can add delay between the actions
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 
@@ -28,30 +29,42 @@ const runMain = async () => {
 
 
 
+    //getting the link for the game
     const newUrl = page.url()
 
+    //getting the title of the game
     const title = await page.$eval('.apphub_AppName', el => el.innerHTML)
 
+    //getting the main image
     const imgSrc = await page.$eval('.game_header_image_full', el => el.getAttribute('src'))
 
-
+    //getting extra images for the game
     const extraImages = await page.evaluate(() => {
         const imageDiv = document.querySelectorAll('.screenshot_holder')
         const links = Array.from(imageDiv).map(el => el.querySelector('a').getAttribute('href'))
         return links;
     })
 
+    //getting extra videos for the game
     const extraVideos = await page.evaluate(() => {
         const videos = document.querySelectorAll('.highlight_player_item')
         const links = Array.from(videos).map(el => el.getAttribute('src'))
         return links;
     })
 
+    //getting extra description for the game
+    const extraDescription = await page.$eval('.game_description_snippet', el => {
+        const description = el.textContent.trim()
+        return description
+    })
+
+    //getting the keywords for the game
     const keywords = await page.$eval('.popular_tags', el => {
-        const words = Array.from(el.querySelectorAll('a')).map(el => el.textContent)
+        const words = Array.from(el.querySelectorAll('a')).map(el => el.textContent.trim())
         return words;
     })
 
+    //getting the minimum requirements for the game
     const minRequirements = await page.$eval('.game_area_sys_req_leftCol', el => {
         const items = el.querySelector('.bb_ul')?.querySelectorAll('li');
         if (!items) {
@@ -60,6 +73,7 @@ const runMain = async () => {
         return Array.from(items, item => item.textContent?.trim());
     });
 
+    //getting the recommended requirements for the game
     const recommendedRequirements = await page.$eval('.game_area_sys_req_rightCol', el => {
         const items = el.querySelector('.bb_ul')?.querySelectorAll('li');
         if (!items) {
@@ -68,6 +82,7 @@ const runMain = async () => {
         return Array.from(items, item => item.textContent?.trim());
     })
 
+    //getting the gameDLCS if there are any
     const gameDLCS = await page.evaluate(() => {
         try {
             const el = document.querySelector('.game_area_dlc_list');
@@ -87,6 +102,7 @@ const runMain = async () => {
         }
     });
 
+    //getting the game price
     const gamePrice = await page.$eval('.discount_original_price', el => {
         return el.textContent
     })
@@ -95,6 +111,7 @@ const runMain = async () => {
     await page.goto('https://www.google.bg/search?q=' + title + '&lr=lang_en')
 
 
+    //getting the main description for the game
     const description = await page.$eval('.kno-rdesc', el => {
         const descParent = el.querySelector('span');
         const wiki = el.querySelector('.ruhjFe');
@@ -129,6 +146,7 @@ const runMain = async () => {
             Wikipedia: description?.wikiLink,
         },
         Extra: {
+            Description: extraDescription,
             DLCS: [],
             Images: [],
             Videos: [],
