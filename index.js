@@ -8,13 +8,16 @@ const dbName = 'Games';
 const collectionName = 'sources';
 
 //put the url of the targetted game
-const url = 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/'
+const url = 'https://store.steampowered.com/app/730/CounterStrike_2/'
 
 //you can add delay between the actions
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 
 }
+
+//example 
+/*await timeout(3000)*/
 
 
 const runMain = async () => {
@@ -26,7 +29,7 @@ const runMain = async () => {
     const page = await browser.newPage()
     await page.goto(url)
 
-
+    await timeout(4000)
 
 
     //getting the link for the game
@@ -64,23 +67,53 @@ const runMain = async () => {
         return words;
     })
 
-    //getting the minimum requirements for the game
-    const minRequirements = await page.$eval('.game_area_sys_req_leftCol', el => {
-        const items = el.querySelector('.bb_ul')?.querySelectorAll('li');
-        if (!items) {
-            return [];
-        }
-        return Array.from(items, item => item.textContent?.trim());
-    });
+    //getting the minimum requirements for the game (if there is any)
 
-    //getting the recommended requirements for the game
-    const recommendedRequirements = await page.$eval('.game_area_sys_req_rightCol', el => {
-        const items = el.querySelector('.bb_ul')?.querySelectorAll('li');
+    const minRequirements = await page.evaluate(() => {
+
+        const items = document.querySelector('.game_area_sys_req_leftCol')
         if (!items) {
             return [];
+        } else {
+            const theItems = items.querySelector('.bb_ul')?.querySelectorAll('li');
+            return Array.from(theItems, item => item.textContent?.trim());
         }
-        return Array.from(items, item => item.textContent?.trim());
+
     })
+
+    //getting the recommended requirements for the game (if there is any)
+
+    const recommendedRequirements = await page.evaluate(() => {
+        try {
+            const items = document.querySelector('.game_area_sys_req_rightCol')
+            if (!items) {
+                return [];
+            } else {
+                const theItems = items.querySelector('.bb_ul')?.querySelectorAll('li');
+                return Array.from(theItems, item => item.textContent?.trim());
+            }
+        } catch (error) {
+            return [];
+        }
+
+    })
+
+    //getting single requirements (if there is any)
+
+    const requirements = await page.evaluate(() => {
+        try {
+            const items = document.querySelector('.game_area_sys_req_full')
+            if (!items) {
+                return [];
+            } else {
+                const theItems = items.querySelector('.bb_ul')?.querySelectorAll('li');
+                return Array.from(theItems, item => item.textContent?.trim());
+            }
+        } catch (error) {
+            return [];
+        }
+    })
+
 
     //getting the gameDLCS if there are any
     const gameDLCS = await page.evaluate(() => {
@@ -103,7 +136,7 @@ const runMain = async () => {
     });
 
     //getting the game price
-    const gamePrice = await page.$eval('.discount_original_price', el => {
+    const gamePrice = await page.$eval('.game_purchase_price', el => {
         return el.textContent
     })
 
@@ -152,6 +185,7 @@ const runMain = async () => {
             Videos: [],
         },
         Requirements: {
+            Requirements: [],
             Minimum: [],
             Maximum: [],
         },
@@ -167,14 +201,26 @@ const runMain = async () => {
         }
     }
 
-    for (let i = 0; i < minRequirements.length; i++) {
-        const req = minRequirements[i]
-        game.Requirements.Minimum.push({ Req: req })
+    if (minRequirements) {
+        for (let i = 0; i < minRequirements.length; i++) {
+            const req = minRequirements[i]
+            game.Requirements.Minimum.push({ Req: req })
+        }
     }
 
-    for (let i = 0; i < recommendedRequirements.length; i++) {
-        const req = recommendedRequirements[i]
-        game.Requirements.Maximum.push({ Req: req })
+    if (recommendedRequirements) {
+        for (let i = 0; i < recommendedRequirements.length; i++) {
+            const req = recommendedRequirements[i]
+            game.Requirements.Maximum.push({ Req: req })
+        }
+    }
+
+    if (requirements) {
+        for (let i = 0; i < requirements.length; i++) {
+            const req = requirements[i]
+
+            game.Requirements.Requirements.push({ req })
+        }
     }
 
     for (let i = 0; i < extraImages.length; i++) {
