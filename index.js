@@ -8,7 +8,7 @@ const dbName = 'Games';
 const collectionName = 'sources';
 
 //put the url of the targetted game
-const url = 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/'
+const url = 'https://store.steampowered.com/app/227300/Euro_Truck_Simulator_2/'
 
 //you can add delay between the actions
 function timeout(ms) {
@@ -114,20 +114,32 @@ const runMain = async () => {
         }
     })
 
-
     //getting the gameDLCS if there are any
     const gameDLCS = await page.evaluate(() => {
         try {
             const el = document.querySelector('.game_area_dlc_list');
             if (!el) throw new Error('Element not found');
 
-            const dlsNames = Array.from(el.querySelectorAll('.game_area_dlc_name')).map(el => el.innerHTML?.trim());
+            const dlsNames = Array.from(el.querySelectorAll('.game_area_dlc_name')).map(el => el.textContent?.trim());
+
+            const originalDiscountPrices = Array.from(el.querySelectorAll('.game_area_dlc_price')).map(el =>
+                Array.from(el.querySelectorAll('.discount_prices')).map(el => Array.from(el.querySelectorAll('.discount_original_price')).map(el => el.textContent)));
+
             const prices = Array.from(el.querySelectorAll('.game_area_dlc_price')).map(el =>
                 Array.from(el.querySelectorAll('.discount_prices')).map(el => Array.from(el.querySelectorAll('.discount_final_price')).map(el => el.textContent)));
 
+            let realPrices = null;
+
+            if (!prices) {
+                realPrices = Array.from(document.querySelectorAll('.game_area_dlc_price')).map(el => el.textContent.trim())
+            }
+
             return {
                 dls: dlsNames,
-                dlsPrices: prices
+                discount: prices ? true : false,
+                originalDiscountPrices,
+                discountPrice: prices,
+                dlcRealPrice: realPrices,
             };
         } catch (error) {
             console.error('Error occurred while fetching game DLCs:', error);
@@ -154,7 +166,7 @@ const runMain = async () => {
         try {
             const price = document.querySelector('.discount_final_price')
             if (!price) {
-            return null
+                return null
             } else {
                 return price.textContent.trim()
             }
@@ -163,6 +175,8 @@ const runMain = async () => {
             return null
         }
     })
+
+
 
 
 
@@ -217,13 +231,30 @@ const runMain = async () => {
         },
     };
 
-    if (gameDLCS && gameDLCS.dls && gameDLCS.dlsPrices) {
+    if (gameDLCS) {
         for (let i = 0; i < gameDLCS.dls.length; i++) {
             const dlcName = gameDLCS.dls[i];
-            const dlcPrices = gameDLCS.dlsPrices[i] || [];
+
+            let originalDiscountPrices = null
+            let dlcPrices = null
+            let price = null
+
+            if (gameDLCS.originalDiscountPrices) {
+                originalDiscountPrices = gameDLCS.originalDiscountPrices[i]
+            }
+
+            if (gameDLCS.discountPrice) {
+                dlcPrices = gameDLCS.discountPrice[i];
+            }
+
+            if (gameDLCS.dlcRealPrice) {
+                price = gameDLCS.dlcRealPrice[i]
+            }
+
+
 
             const dlcPrice = dlcPrices[0] || null;
-            game.Extra.DLCS.push({ name: dlcName, price: dlcPrice });
+            game.Extra.DLCS.push({ name: dlcName, originalDiscountPrices, discountPrice: dlcPrice, price });
         }
     }
 
