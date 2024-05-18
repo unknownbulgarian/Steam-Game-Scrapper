@@ -8,7 +8,7 @@ const dbName = 'Games';
 const collectionName = 'sources';
 
 //put the url of the targetted game
-const url = 'https://store.steampowered.com/app/730/CounterStrike_2/'
+const url = 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/'
 
 //you can add delay between the actions
 function timeout(ms) {
@@ -136,9 +136,34 @@ const runMain = async () => {
     });
 
     //getting the game price
-    const gamePrice = await page.$eval('.game_purchase_price', el => {
-        return el.textContent
+    const gamePrice = await page.evaluate(() => {
+        try {
+            const price = document.querySelector('.game_purchase_price')
+            if (!price) {
+                return null;
+            } else {
+                return price.textContent.trim()
+            }
+
+        } catch (error) {
+            return null;
+        }
     })
+
+    const FinalPrice = await page.evaluate(() => {
+        try {
+            const price = document.querySelector('.discount_final_price')
+            if (!price) {
+            return null
+            } else {
+                return price.textContent.trim()
+            }
+
+        } catch (error) {
+            return null
+        }
+    })
+
 
 
     await page.goto('https://www.google.bg/search?q=' + title + '&lr=lang_en')
@@ -172,6 +197,7 @@ const runMain = async () => {
             Title: title,
             imgSrc: imgSrc,
             GamePrice: gamePrice,
+            FinalPrice,
             Keywords: []
         },
         About: {
