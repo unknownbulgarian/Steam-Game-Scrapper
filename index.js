@@ -3,12 +3,14 @@ const { MongoClient } = require('mongodb');
 
 require('dotenv').config();
 
-const uri = process.env.URI
-const dbName = 'Games';
-const collectionName = 'sources';
+const uri = process.env.URI // < -- create .env file and put there your mongodb uri URI=YOUR_URL
+
+
+const dbName = 'Games'; // < -- your database
+const collectionName = 'sources'; // < -- your collection
 
 //put the url of the targetted game
-const url = 'https://store.steampowered.com/app/227300/Euro_Truck_Simulator_2/'
+const url = 'https://store.steampowered.com/app/2386580/Project_Hardline/'
 
 //you can add delay between the actions
 function timeout(ms) {
@@ -128,11 +130,11 @@ const runMain = async () => {
             const prices = Array.from(el.querySelectorAll('.game_area_dlc_price')).map(el =>
                 Array.from(el.querySelectorAll('.discount_prices')).map(el => Array.from(el.querySelectorAll('.discount_final_price')).map(el => el.textContent)));
 
-       
+
 
             const priceDiv = document.querySelector('.game_area_dlc_list')
             const realPrices = Array.from(priceDiv.querySelectorAll('.game_area_dlc_price')).map(el => el.textContent.trim())
-     
+
 
             return {
                 dls: dlsNames,
@@ -163,21 +165,32 @@ const runMain = async () => {
         }
     })
 
+
+
+    //getting the discount price (if there is any)
     const originalDiscountPrice = await page.evaluate(() => {
+
+        let isDiscount = true;
+
         try {
             const priceDiv = document.querySelector('.game_area_purchase_game_wrapper')
             const price = priceDiv.querySelector('.discount_original_price')
-            if(!price) {
+            if (!price) {
                 return null;
             } else {
-                return price.textContent.trim()
+
+                return {
+                    isDiscount,
+                    DiscountOriginalPrice: price.textContent.trim()
+                }
             }
 
         } catch (error) {
-           return null
+            return null
         }
-    })
+    },)
 
+    //getting the final discount price (if there is any)
     const finalPrice = await page.evaluate(() => {
         try {
             const priceDiv = document.querySelector('.game_area_purchase_game_wrapper')
@@ -185,13 +198,14 @@ const runMain = async () => {
             if (!price) {
                 return null
             } else {
+
                 return price.textContent.trim()
             }
 
         } catch (error) {
             return null
         }
-    })
+    },)
 
 
 
@@ -201,10 +215,15 @@ const runMain = async () => {
 
 
     //getting the main description for the game
-    const description = await page.$eval('.kno-rdesc', el => {
-        const descParent = el.querySelector('span');
-        const wiki = el.querySelector('.ruhjFe');
+    const description = await page.evaluate(() => {
+
         try {
+
+            const el = document.querySelector('.kno-rdesc')
+
+            const descParent = el.querySelector('span');
+            const wiki = el.querySelector('.ruhjFe');
+
             if (descParent) {
                 const descChild = descParent.querySelector('span');
                 const wikiHref = wiki?.getAttribute('href');
@@ -220,15 +239,18 @@ const runMain = async () => {
             console.error('Error occurred while extracting description:', error);
             return null;
         }
-    });
+    })
+
+
 
     const game = {
         General: {
             Link: newUrl,
             Title: title,
             imgSrc: imgSrc,
+            gameDiscount: originalDiscountPrice?.isDiscount,
             GamePrice: gamePrice,
-            DiscoundOriginalPrice: originalDiscountPrice,
+            DiscountOriginalPrice: originalDiscountPrice?.DiscountOriginalPrice,
             FinalPrice: finalPrice,
             Keywords: []
         },
@@ -272,7 +294,7 @@ const runMain = async () => {
             }
 
             const dlcPrice = dlcPrices[0] || null;
-            game.Extra.DLCS.push({ name: dlcName, discount , originalDiscountPrices, discountPrice: dlcPrice, price});
+            game.Extra.DLCS.push({ name: dlcName, discount, originalDiscountPrices, discountPrice: dlcPrice, price });
         }
     }
 
