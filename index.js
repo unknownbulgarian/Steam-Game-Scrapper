@@ -51,9 +51,9 @@ const runMain = async (url) => {
 
     if (buttonExists) {
         await page.click('#view_product_page_btn');
-       // console.log('Button clicked');
+        // console.log('Button clicked');
     } else {
-      //  console.log('Button not found');
+        //  console.log('Button not found');
     }
 
     await timeout(5000)
@@ -73,7 +73,15 @@ const runMain = async (url) => {
         return Array.from(videos).map(el => el.getAttribute('src'));
     });
 
-    const extraDescription = await page.$eval('.game_description_snippet', el => el.textContent.trim());
+    let extraDescription;
+
+    try {
+        extraDescription = await page.$eval('.game_description_snippet', el => el.textContent.trim());
+     //   console.log('Description found:', extraDescription);
+    } catch (error) {
+        extraDescription = null;
+        //console.log('Description not found');
+    }
 
     const keywords = await page.$eval('.popular_tags', el => {
         return Array.from(el.querySelectorAll('a')).map(el => el.textContent.trim());
@@ -280,6 +288,7 @@ const runMain = async (url) => {
 const main = async () => {
     const gameLinks = await getGamesLinks();
     for (const link of gameLinks) {
+        console.log(link)
         await runMain(link);
     }
 };
