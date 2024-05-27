@@ -8,45 +8,45 @@ This script allows you to grab **basic** information about **any game** on Steam
 
 **General**
 
-[x] AutoPilot
+- [x] AutoPilot
 
-[x] Saving data in MongoDB
+- [x] Saving data in MongoDB
 
 **Scrapped Info**
 
-[x] The link for the game
+- [x] The link for the game
 
-[x] The title
+- [x] The title
 
-[x] The main game image
+- [x] The main game image
 
-[x] The game discount if there is any
+- [x] The game discount if there is any
 
-[x] The discount original price
+- [x] The discount original price
 
-[x] The final price
+- [x] The final price
 
-[x] The game price if there is no discount
+- [x] The game price if there is no discount
 
-[x] 20 Keywords about the game
+- [x] 20 Keywords about the game
 
-[x] Google description about the game
+- [x] Google description about the game
 
-[x] Wikipedia link
+- [x] Wikipedia link
 
-[x] Extra description from steam
+- [x] Extra description from steam
 
-[x] The game DLCS
+- [x] The game DLCS
 
-[x] The dlcs name
+- [x] The dlcs name
 
-[x] The dlcs discount price if there is any
+- [x] The dlcs discount price if there is any
 
-[x] The dlcs discount original price
+- [x] The dlcs discount original price
 
-[x] The final discount price
+- [x] The final discount price
 
-[x] The dlcs price if there is no discount
+- [x] The dlcs price if there is no discount
 
 [x] 19 extra images about the game
 
