@@ -107,7 +107,7 @@ URI={YOUR_MONGODB_URI}
 ```
 
 > [!NOTE]
-> Extra notes that you should read
+> Extra notes that you should read.
 
 You will see:
 
@@ -144,7 +144,7 @@ const autoScroll = async (page) => {
 ```
 
 > [!IMPORTANT]
-> Auto scroll will not work
+> Auto scroll does not work!
 
 Unfortunately this feature won't work for some reason, so what you need to do is when the browser opens, you'll go to the steam pages first and grab the game urls, what you want to do is start scrolling very quickly to the bottom to load more content and more content.
 
